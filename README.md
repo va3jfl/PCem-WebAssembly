@@ -32,9 +32,8 @@ Some parts had to be rebuilt for the browser rather than merely recompiled:
   A/B oracle; anything the recompiler can't prove falls back to the C path.
 * An optional CPU recompiler translates PCem's IR to WebAssembly at runtime.
   It is off by default and honestly labelled: it wins substantially on
-  compute-heavy guests but can lose to the interpreter on I/O-bound desktop
-  work, so it's a per-system checkbox rather than a silent default. A
-  differential oracle can run every compiled block in lockstep with the
+  compute-heavy guests.
+* A differential oracle can run every compiled block in lockstep with the
   interpreter to prove bit-exactness.
 * Audio streams through an AudioWorklet reading lock-free rings directly
   from shared memory, with pre-roll, drift compensation and an adaptive
