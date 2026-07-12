@@ -17,7 +17,7 @@ Live Demo at https://citizenlink.net
 
 The full PCem device inventory is compiled in: 97 machine models from the
 8088 XT through Socket 7, with the video, sound, storage and input hardware
-the desktop version registers — enumerated live from the same device tables,
+the desktop version registers. Enumerated live from the same device tables,
 including each device's own configuration dialog (Sound Blaster resources,
 Voodoo memory/threads/SLI, display types, and so on).
 
@@ -50,11 +50,11 @@ Some parts had to be rebuilt for the browser rather than merely recompiled:
   Export function writes a hostable folder so a `?system=` link boots your
   exact machine, disks included, for anyone you send it to.
 * Networking: an NE2000 (ISA) or RTL8029AS (PCI) whose frames travel over a
-  WebSocket relay — every machine pointed at the same relay shares a virtual
+  WebSocket relay. Every machine pointed at the same relay shares a virtual
   LAN, which makes browser-to-browser multiplayer (IPX DOOM, file sharing)
   "use the same URL". A public relay is baked in as the zero-config default;
   each system can instead pick **Tabs in this browser** (a serverless LAN
-  between tabs — the fastest way to try multiplayer against yourself), a
+  between tabs. The fastest way to try multiplayer against yourself), a
   custom relay URL, or off, and `tools/net_relay.mjs` is a self-hostable
   zero-dependency hub. PCem's own networking core compiles unmodified — the
   browser backend sits behind a libslirp-shaped shim.
@@ -129,7 +129,7 @@ audio, including 3D-accelerated titles through the Voodoo recompiler. CPU
 models are labelled by emulation cost in the editor ("demanding" from
 60 MHz, "very demanding" from 120 MHz), and a machine that can't sustain
 real time tells you so once and points at the fix, instead of silently
-stuttering. Cycle-paced emulation is expensive by design — if a model runs
+stuttering. Cycle-paced emulation is expensive by design. If a model runs
 below 100% on your hardware, pick a lower one; that is the machine your
 browser can actually be.
 
