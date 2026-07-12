@@ -1,0 +1,12 @@
+build/
+build-dbg/
+node_modules/
+tools/out/
+__pycache__/
+
+# build outputs (rebuild with ./build.sh)
+web/pcem/*.js
+web/pcem/*.wasm
+
+# test scratch
+web/examples/blank360.img

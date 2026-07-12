@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "name": "Generic XT (open test ROM)",
+  "machine": "genxt",
+  "cpu_manufacturer": 0,
+  "cpu": 0,
+  "fpu": "none",
+  "mem_kb": 640,
+  "gfxcard": "cga",
+  "video_speed": -1,
+  "sndcard": "none",
+  "hdd_controller": "none",
+  "fdd": [ { "type": 7, "image": "" }, { "type": 7, "image": "" } ],
+  "hdd": [],
+  "cdrom": { "enabled": false, "image": "", "channel": 2 },
+  "mouse_type": 0
+}

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PCem — WebAssembly</title>
+<link rel="stylesheet" href="css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect x='1' y='2' width='14' height='10' rx='1' fill='%2318b2a6'/><rect x='3' y='4' width='10' height='6' fill='%230b1220'/><rect x='5' y='13' width='6' height='1.5' fill='%2318b2a6'/></svg>">
+</head>
+<body>
+<div id="app">
+  <!-- ======================= left rail: systems manager ======================= -->
+  <aside id="sidebar">
+    <header id="sidebar-head">
+      <div id="logo">
+        <span class="logo-mark"></span>
+        <div>
+          <h1>PCem</h1>
+          <span class="sub">WebAssembly Edition</span>
+        </div>
+      </div>
+    </header>
+
+    <div id="systems-toolbar">
+      <span class="systems-title">Systems</span>
+      <span class="spacer"></span>
+      <button class="btn icon" id="btn-import-profile" title="Import profile (.json)">&#8681;</button>
+      <button class="btn primary" id="btn-new-system" title="Create a new system">+ New</button>
+    </div>
+
+    <ul id="systems-list" aria-label="Configured systems"></ul>
+
+    <footer id="sidebar-foot">
+      <div class="foot-row">
+        <div id="roms-status" class="muted">ROMs: checking&hellip;</div>
+        <button class="btn small" id="btn-rescan" title="Re-scan the server's /roms directory">Rescan</button>
+      </div>
+      <div class="muted tiny">PCem core: <span id="core-version">loading&hellip;</span></div>
+    </footer>
+  </aside>
+
+  <!-- ============================ main area =================================== -->
+  <main id="main">
+    <div id="display-wrap">
+      <div id="welcome">
+        <div class="welcome-card">
+          <h2>No machine running</h2>
+          <p>Create a system from the sidebar, pick its hardware, mount your own
+             disk images, and boot it — all in your browser.</p>
+          <p class="muted">Machine ROMs are read from this server's <code>/roms</code>
+             directory — same layout as a desktop PCem install. Local disk images are
+             read with the File API straight into the emulator's virtual file system.</p>
+          <div id="welcome-roms-warning" class="warn hidden"></div>
+        </div>
+      </div>
+      <canvas id="screen" width="640" height="480" class="hidden" tabindex="0"></canvas>
+      <div id="capture-hint" class="hidden">Click to capture mouse &middot; Ctrl+End releases</div>
+    </div>
+
+    <div id="statusbar">
+      <span id="st-machine" class="st">—</span>
+      <span id="st-state" class="st">idle</span>
+      <span id="st-speed" class="st" title="Emulated speed relative to real hardware">0%</span>
+      <span id="st-fps" class="st" title="Emulated video frames per second">0 fps</span>
+      <span id="st-net" class="st hidden" title="Network relay link">&#128268; net</span>
+      <span class="spacer"></span>
+      <span id="st-audio" class="st clickable" title="Toggle audio">&#128266;</span>
+      <span id="media-anchor">
+        <button class="btn small" id="btn-media" disabled
+                title="Swap floppies / CD-ROM without rebooting">&#128191; Media</button>
+        <div id="media-menu" class="hidden"></div>
+      </span>
+      <button class="btn small" id="btn-pause" disabled>Pause</button>
+      <button class="btn small" id="btn-reset" disabled>Reset</button>
+      <button class="btn small danger" id="btn-stop" disabled>Stop</button>
+      <button class="btn small" id="btn-fullscreen" title="Fullscreen">&#x26F6;</button>
+    </div>
+  </main>
+</div>
+
+<!-- ========================== machine editor modal =========================== -->
+<dialog id="editor">
+  <form method="dialog" id="editor-form">
+    <header>
+      <h2 id="editor-title">New system</h2>
+      <button type="button" class="btn icon" id="editor-close" title="Close">&#10005;</button>
+    </header>
+
+    <div class="field-row name-row">
+      <label>System name
+        <input type="text" id="ed-name" placeholder="e.g. DOS games rig" required>
+      </label>
+    </div>
+
+    <nav id="editor-tabs">
+      <button type="button" class="tab active" data-tab="machine">Machine</button>
+      <button type="button" class="tab" data-tab="display">Display</button>
+      <button type="button" class="tab" data-tab="sound">Sound</button>
+      <button type="button" class="tab" data-tab="storage">Storage</button>
+      <button type="button" class="tab" data-tab="media">Media</button>
+      <button type="button" class="tab" data-tab="inputnet">Input / Network</button>
+    </nav>
+
+    <!-- Machine -->
+    <section class="tabpane active" data-pane="machine">
+      <div class="field-row">
+        <label>Machine
+          <span class="cfg-row">
+            <select id="ed-machine"></select>
+            <button type="button" class="btn cfg-btn" id="ed-machine-cfg"
+                    title="Machine settings&hellip;" aria-label="Machine settings" disabled>&#9881;</button>
+          </span>
+        </label>
+      </div>
+      <div class="field-row three">
+        <label>CPU family
+          <select id="ed-cpu-manufacturer"></select>
+        </label>
+        <label>CPU
+          <select id="ed-cpu"></select>
+        </label>
+        <label>FPU
+          <select id="ed-fpu"></select>
+        </label>
+      </div>
+      <div class="field-row three">
+        <label>Memory
+          <select id="ed-ram"></select>
+        </label>
+        <label>Wait states
+          <select id="ed-waitstates">
+            <option value="0">Default</option>
+            <option value="1">0 w/s</option><option value="2">1 w/s</option>
+            <option value="3">2 w/s</option><option value="4">3 w/s</option>
+            <option value="5">4 w/s</option><option value="6">5 w/s</option>
+            <option value="7">6 w/s</option><option value="8">7 w/s</option>
+          </select>
+        </label>
+        <label>Mouse
+          <select id="ed-mouse">
+            <option value="0">2-button serial (Microsoft)</option>
+            <option value="1">3-button serial (Logitech)</option>
+            <option value="2">Microsoft Intellimouse</option>
+            <option value="3">2-button PS/2</option>
+            <option value="4">Intellimouse PS/2</option>
+            <option value="5">Amstrad</option>
+            <option value="6">Olivetti M24</option>
+            <option value="7">MSystems</option>
+          </select>
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="check-row"><input type="checkbox" id="ed-cpu-dynarec">
+          CPU recompiler (experimental &mdash; try it for compute-heavy guests)</label>
+      </div>
+      <p class="muted tiny">Machines are listed when their ROM set is found in the server's
+      <code>/roms</code> directory (same check the desktop version does against its roms folder).
+      The default CPU core is the interpreter &mdash; on typical desktop workloads it is
+      currently the fastest option here. The experimental WebAssembly recompiler is verified
+      instruction-for-instruction against the interpreter and can be markedly faster on tight
+      compute (number crunching, tight loops), but its per-block overhead makes Win9x desktop
+      use <em>slower</em> today &mdash; tick it per system only if it measures better for your
+      workload (the status bar shows the actual speed).</p>
+    </section>
+
+    <!-- Display -->
+    <section class="tabpane" data-pane="display">
+      <div class="field-row">
+        <label>Video card
+          <span class="cfg-row">
+            <select id="ed-gfx"></select>
+            <button type="button" class="btn cfg-btn" id="ed-gfx-cfg"
+                    title="Video card settings&hellip;" aria-label="Video card settings" disabled>&#9881;</button>
+          </span>
+        </label>
+      </div>
+      <div class="field-row">
+        <label>Video speed
+          <select id="ed-video-speed">
+            <option value="-1">Default</option>
+            <option value="0">8-bit bus</option>
+            <option value="1">Slow 16-bit</option>
+            <option value="2">Fast 16-bit</option>
+            <option value="3">Slow VLB/PCI</option>
+            <option value="4">Mid VLB/PCI</option>
+            <option value="5">Fast VLB/PCI</option>
+          </select>
+        </label>
+      </div>
+      <div class="check-cfg">
+        <label class="check" id="ed-voodoo-label" title="The Voodoo is a PCI board — available on PCI machines only, like the desktop version">
+          <input type="checkbox" id="ed-voodoo"> 3Dfx Voodoo add-on card</label>
+        <button type="button" class="btn small" id="ed-voodoo-cfg" disabled>Configure&hellip;</button>
+      </div>
+    </section>
+
+    <!-- Sound -->
+    <section class="tabpane" data-pane="sound">
+      <div class="field-row">
+        <label>Sound card
+          <span class="cfg-row">
+            <select id="ed-snd"></select>
+            <button type="button" class="btn cfg-btn" id="ed-snd-cfg"
+                    title="Sound card settings&hellip;" aria-label="Sound card settings" disabled>&#9881;</button>
+          </span>
+        </label>
+      </div>
+      <label class="check"><input type="checkbox" id="ed-gameblaster"> Game Blaster</label>
+      <label class="check"><input type="checkbox" id="ed-gus"> Gravis Ultrasound</label>
+      <label class="check"><input type="checkbox" id="ed-ssi2001"> SSI-2001</label>
+      <p class="muted tiny">The &#9881; button opens the card&rsquo;s own options &mdash; e.g. Sound Blaster
+      address, IRQ, DMA and OPL core &mdash; the same dialog the desktop version generates for each device.</p>
+    </section>
+
+    <!-- Storage -->
+    <section class="tabpane" data-pane="storage">
+      <div class="field-row">
+        <label>HDD controller
+          <span class="cfg-row">
+            <select id="ed-hddctrl"></select>
+            <button type="button" class="btn cfg-btn" id="ed-hddctrl-cfg"
+                    title="Controller settings&hellip;" aria-label="Controller settings" disabled>&#9881;</button>
+          </span>
+        </label>
+      </div>
+      <div class="field-row two">
+        <label>Drive A: type
+          <select id="ed-fda-type" class="fdd-type"></select>
+        </label>
+        <label>Drive B: type
+          <select id="ed-fdb-type" class="fdd-type"></select>
+        </label>
+      </div>
+      <div id="ed-hdd-list"></div>
+      <p class="muted tiny">Attach hard-disk images on the Media tab; geometry is parsed from
+      VHD footers automatically, or guessed from raw image sizes.</p>
+    </section>
+
+    <!-- Media -->
+    <section class="tabpane" data-pane="media">
+      <div class="media-slot" data-slot="fda">
+        <div class="media-head"><strong>Floppy A:</strong><span class="media-name muted">empty</span></div>
+        <div class="media-actions">
+          <button type="button" class="btn small media-pick">Choose local image&hellip;</button>
+          <button type="button" class="btn small media-download" title="Save this image, including changes the guest made to it">Download</button>
+          <button type="button" class="btn small media-clear">Eject</button>
+        </div>
+      </div>
+      <div class="media-slot" data-slot="fdb">
+        <div class="media-head"><strong>Floppy B:</strong><span class="media-name muted">empty</span></div>
+        <div class="media-actions">
+          <button type="button" class="btn small media-pick">Choose local image&hellip;</button>
+          <button type="button" class="btn small media-download" title="Save this image, including changes the guest made to it">Download</button>
+          <button type="button" class="btn small media-clear">Eject</button>
+        </div>
+      </div>
+      <div class="media-slot" data-slot="hdd0">
+        <div class="media-head"><strong>Hard disk 0</strong><span class="media-name muted">none</span></div>
+        <div class="media-actions">
+          <button type="button" class="btn small media-pick">Choose local image&hellip;</button>
+          <button type="button" class="btn small media-new">Create blank&hellip;</button>
+          <button type="button" class="btn small media-download" title="Save this disk with this session's guest writes merged in — your original file is never modified">Download image</button>
+          <button type="button" class="btn small media-clear">Detach</button>
+        </div>
+        <div class="geometry">
+          C <input type="number" class="geo-c" min="0" max="65535">
+          H <input type="number" class="geo-h" min="0" max="255">
+          S <input type="number" class="geo-s" min="0" max="255">
+          <span class="geo-size muted"></span>
+        </div>
+      </div>
+      <div class="media-slot" data-slot="hdd1">
+        <div class="media-head"><strong>Hard disk 1</strong><span class="media-name muted">none</span></div>
+        <div class="media-actions">
+          <button type="button" class="btn small media-pick">Choose local image&hellip;</button>
+          <button type="button" class="btn small media-new">Create blank&hellip;</button>
+          <button type="button" class="btn small media-download" title="Save this disk with this session's guest writes merged in — your original file is never modified">Download image</button>
+          <button type="button" class="btn small media-clear">Detach</button>
+        </div>
+        <div class="geometry">
+          C <input type="number" class="geo-c" min="0" max="65535">
+          H <input type="number" class="geo-h" min="0" max="255">
+          S <input type="number" class="geo-s" min="0" max="255">
+          <span class="geo-size muted"></span>
+        </div>
+      </div>
+      <div class="media-slot" data-slot="cd">
+        <div class="media-head"><strong>CD-ROM</strong><span class="media-name muted">none</span></div>
+        <div class="media-actions">
+          <button type="button" class="btn small media-pick">Choose .iso&hellip;</button>
+          <button type="button" class="btn small media-clear">Eject</button>
+        </div>
+      </div>
+      <p class="muted tiny">Local files are copied into the browser-side virtual file system —
+      nothing is uploaded anywhere. Guest writes stay in memory for this session; <b>Download</b>
+      saves an image back to your computer with those changes merged in (your original file is
+      never touched). Fixed VHDs come back as valid VHDs.</p>
+      <p class="muted tiny"><b>While the machine is running:</b> floppy and CD changes here apply
+      instantly on save — no reboot; the guest sees a media change, so multi-disc installs just
+      work. (The <b>&#128191; Media</b> button in the status bar does the same without opening
+      this dialog.) Hard-disk changes still need a reboot.</p>
+    </section>
+
+    <!-- Input / Network -->
+    <section class="tabpane" data-pane="inputnet">
+      <h3 class="pane-sub">Joystick &amp; gamepad</h3>
+      <div class="field-row">
+        <label>Emulated joystick (game port)
+          <select id="ed-joystick"></select>
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="check-row"><input type="checkbox" id="ed-gamepad" checked>
+          Use host gamepads (Gamepad API)</label>
+      </div>
+      <div id="ed-gamepad-status" class="muted tiny">No gamepad detected — connect one and press any button on it.</div>
+      <p class="muted tiny">The game port itself comes with a sound card (Sound Blaster etc.), like real
+      hardware. Connected pads map 1:1 onto the emulated sticks: left stick &rarr; axes 0/1, right stick
+      &rarr; axes 2/3, buttons in gamepad order, d-pad &rarr; the POV hat on stick types that have one.</p>
+
+      <h3 class="pane-sub">MIDI output</h3>
+      <div class="field-row">
+        <span class="cfg-row">
+          <button type="button" class="btn small" id="ed-midi-enable">Enable MIDI output&hellip;</button>
+          <span id="ed-midi-status" class="muted tiny"></span>
+        </span>
+      </div>
+      <p class="muted tiny">Sends the emulated MPU-401's stream (SB16/AWE32 &mdash; General MIDI music in
+      DOS games) to a real or software synth via WebMIDI. After enabling, pick the output device in the
+      sound card&rsquo;s &#9881; dialog &mdash; the same &ldquo;MIDI out device&rdquo; row the desktop
+      version shows.</p>
+
+      <h3 class="pane-sub">Network</h3>
+      <div class="field-row">
+        <label>Network card
+          <span class="cfg-row">
+            <select id="ed-netcard"></select>
+            <button type="button" class="btn cfg-btn" id="ed-netcard-cfg"
+                    title="Card settings&hellip;" aria-label="Network card settings" disabled>&#9881;</button>
+          </span>
+        </label>
+      </div>
+      <div class="field-row two">
+        <label>Connection
+          <select id="ed-net-mode">
+            <option value="relay">Shared public relay (default)</option>
+            <option value="local">Tabs in this browser (no server)</option>
+            <option value="custom">Custom relay URL&hellip;</option>
+            <option value="off">Off (cable unplugged)</option>
+          </select>
+        </label>
+        <label id="ed-net-url-label">Relay URL
+          <input type="text" id="ed-net-url" placeholder="wss://relay.example.org/ or ws://localhost:8087/">
+        </label>
+      </div>
+      <div class="field-row two">
+        <label>MAC address
+          <span class="cfg-row">
+            <input type="text" id="ed-mac" spellcheck="false" placeholder="02:xx:xx:xx:xx:xx">
+            <button type="button" class="btn small" id="ed-mac-rand" title="Generate a new random MAC">Randomize</button>
+          </span>
+        </label>
+      </div>
+      <p class="muted tiny">Frames travel over a WebSocket relay (the v86/websockproxy protocol):
+      every machine pointed at the <em>same</em> relay is on the same virtual LAN &mdash; that&rsquo;s
+      the whole trick to browser-to-browser multiplayer (IPX DOOM, Windows file sharing), and the
+      public relay also answers DHCP and NATs to the internet. It is shared and low-bandwidth;
+      for a private LAN run <code>node tools/net_relay.mjs</code> and enter its
+      <code>ws://host:8087/</code> here. <b>Tabs in this browser</b> needs no server at all:
+      machines in other tabs of this same browser share a LAN instantly &mdash; the quickest way
+      to try IPX multiplayer against yourself. Each machine needs its own MAC.</p>
+      <p class="muted tiny"><b>Windows 9x tip:</b> on a PCI machine pick the <b>Realtek RTL8029AS</b>
+      &mdash; it&rsquo;s Plug&nbsp;&amp;&nbsp;Play and Windows sets it up by itself. The NE2000 is a
+      legacy ISA card (real ones were too): Windows cannot detect it &mdash; add it via
+      Add&nbsp;New&nbsp;Hardware &rarr; &ldquo;Novell/Anthem NE2000 Compatible&rdquo;, then set its
+      resources in Device Manager to <b>I/O 300&ndash;31F, IRQ 10</b> (or whatever the &#9881; here
+      says). DOS packet drivers take the same values on the command line
+      (<code>ne2000.com 0x60 10 0x300</code>).</p>
+    </section>
+
+    <footer>
+      <button type="button" class="btn" id="editor-export">Download JSON</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="editor-cancel">Cancel</button>
+      <button type="submit" class="btn primary" id="editor-save">Save system</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- ===================== per-device configuration modal ====================== -->
+<dialog id="devcfg">
+  <form method="dialog">
+    <header>
+      <h2 id="devcfg-title">Device configuration</h2>
+      <button type="button" class="btn icon" id="devcfg-close" title="Close">&#10005;</button>
+    </header>
+    <div id="devcfg-body"></div>
+    <footer>
+      <button type="button" class="btn" id="devcfg-defaults" title="Reset every option to the device's defaults">Defaults</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="devcfg-cancel">Cancel</button>
+      <button type="submit" class="btn primary" id="devcfg-ok">OK</button>
+    </footer>
+  </form>
+</dialog>
+
+<input type="file" id="file-hidden" class="hidden">
+<input type="file" id="profile-hidden" accept=".json,application/json" class="hidden">
+
+<div id="toasts"></div>
+<div id="boot-overlay">
+  <div class="boot-card">
+    <h2>PCem/wasm</h2>
+    <div id="boot-msg">Loading emulator core&hellip;</div>
+    <progress id="boot-progress" max="100" value="0"></progress>
+  </div>
+</div>
+
+<script src="js/main.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "name": "HOSTED demo",
+  "machine": "p55tvp4",
+  "cpu_manufacturer": 0,
+  "cpu": 0,
+  "fpu": "builtin",
+  "mem_kb": 16384,
+  "gfxcard": "cga",
+  "sndcard": "none",
+  "hdd_controller": "ide",
+  "hdd": [
+    {
+      "url": "c.img",
+      "sectors": 63,
+      "heads": 16,
+      "cylinders": 48
+    }
+  ],
+  "fdd": [
+    {
+      "type": 0
+    },
+    {
+      "type": 0
+    }
+  ],
+  "cdrom": {
+    "enabled": true,
+    "url": "boot.iso",
+    "channel": 2
+  },
+  "mouse_type": 3
+}

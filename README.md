@@ -15,7 +15,7 @@ the emulation fidelity is theirs.
 
 The full PCem device inventory is compiled in: 97 machine models from the
 8088 XT through Socket 7, with the video, sound, storage and input hardware
-the desktop version registers. Enumerated live from the same device tables,
+the desktop version registers — enumerated live from the same device tables,
 including each device's own configuration dialog (Sound Blaster resources,
 Voodoo memory/threads/SLI, display types, and so on).
 
@@ -122,7 +122,7 @@ Test ROMs for the synthetic boot tests are generated with
 
 ## Performance, honestly
 
-A mid-range desktop holds a Pentium 90 class machine at 100% with clean
+A mid-range desktop holds a Pentium 90class machine at 100% with clean
 audio, including 3D-accelerated titles through the Voodoo recompiler. CPU
 models are labelled by emulation cost in the editor ("demanding" from
 60 MHz, "very demanding" from 120 MHz), and a machine that can't sustain
