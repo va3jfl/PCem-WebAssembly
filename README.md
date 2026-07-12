@@ -1,4 +1,4 @@
-# PCem — WebAssembly edition
+# PCem — WebAssembly Edition
 
 A port of the [PCem](https://pcem-emulator.co.uk/) PC emulator to the browser.
 The native wxWidgets/Qt front end is replaced by a headless Emscripten build
